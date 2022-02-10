@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FaSearch } from "react-icons/fa";
 import Photo from "./Photo";
 
@@ -11,8 +11,10 @@ const searchUrl = `https://api.unsplash.com/search/photos/`;
 function App() {
     const [loading, setLoading] = useState(false);
     const [photos, setPhotos] = useState([]);
-    const [page, setPage] = useState(0);
+    const [page, setPage] = useState(1);
     const [query, setQuery] = useState("");
+    const [newImages, setNewImages] = useState(false);
+    const mounted = useRef(false);
 
     const fetchImages = async () => {
         setLoading(true);
@@ -36,10 +38,12 @@ function App() {
             } else {
                 setPhotos((photos) => [...photos, ...data]);
             }
+            setNewImages(false);
             setLoading(false);
         } catch (error) {
+            setNewImages(false);
             setLoading(false);
-            console.log(error);
+            // console.log(error);
         }
     };
 
@@ -49,25 +53,52 @@ function App() {
     }, [page]);
 
     useEffect(() => {
+        if (!mounted.current) {
+            mounted.current = true;
+            return;
+        }
+        if (!newImages) return;
+        if (loading) return;
+        setPage((oldPage) => oldPage + 1);
+        // eslint-disable-next-line
+    }, [newImages]);
+
+    const event = () => {
+        if (
+            window.innerHeight + window.scrollY >=
+            document.body.scrollHeight - 5
+        ) {
+            setNewImages(true);
+        }
+    };
+    useEffect(() => {
+        window.addEventListener("scroll", event);
+        return () => window.removeEventListener("scroll", event);
+    }, []);
+
+    // Below is buggy code, because at first mount loading is always false instead I fixed the code with 2 useEffects and useRef. I used useRef because comp. doesnt rerender when useref changes.
+    /*    useEffect(() => {
         const event = window.addEventListener("scroll", () => {
             if (
                 !loading &&
                 window.innerHeight + window.scrollY >=
                     document.body.scrollHeight - 5
             ) {
-                setPage((old) => old + 1);
-                // console.log("it worked");
+                setPage((old) => old + 1);                
             }
         });
         return () => window.removeEventListener("scroll", event);
         // eslint-disable-next-line
     }, []);
-
+ */
     const handleSubmit = (e) => {
         e.preventDefault();
-        // setQuery(e.target.value);
+        if (!query) return;
+        if (page === 1) {
+            fetchImages();
+            return;
+        }
         setPage(1);
-        // fetchImages();
     };
     return (
         <main>
