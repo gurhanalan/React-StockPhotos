@@ -11,18 +11,31 @@ const searchUrl = `https://api.unsplash.com/search/photos/`;
 function App() {
     const [loading, setLoading] = useState(false);
     const [photos, setPhotos] = useState([]);
-    const [page, setPage] = useState(1);
+    const [page, setPage] = useState(0);
+    const [query, setQuery] = useState("");
 
     const fetchImages = async () => {
         setLoading(true);
         let url;
         const urlPage = `&page=${page}`;
-        url = `${mainUrl}${clientID}${urlPage}`;
+        const urlQuery = `&query=${query}`;
+
+        if (query) {
+            url = `${searchUrl}${clientID}${urlPage}${urlQuery}`;
+        } else {
+            url = `${mainUrl}${clientID}${urlPage}`;
+        }
         try {
             const response = await fetch(url);
             const data = await response.json();
             // console.log(data);
-            setPhotos((photos) => [...photos, ...data]);
+            if (query && page === 1) {
+                setPhotos((photos) => [...data.results]);
+            } else if (query) {
+                setPhotos((photos) => [...photos, ...data.results]);
+            } else {
+                setPhotos((photos) => [...photos, ...data]);
+            }
             setLoading(false);
         } catch (error) {
             setLoading(false);
@@ -32,6 +45,7 @@ function App() {
 
     useEffect(() => {
         fetchImages();
+        // eslint-disable-next-line
     }, [page]);
 
     useEffect(() => {
@@ -42,14 +56,18 @@ function App() {
                     document.body.scrollHeight - 5
             ) {
                 setPage((old) => old + 1);
-                console.log("it worked");
+                // console.log("it worked");
             }
         });
         return () => window.removeEventListener("scroll", event);
+        // eslint-disable-next-line
     }, []);
 
     const handleSubmit = (e) => {
-        e.preventdefault();
+        e.preventDefault();
+        // setQuery(e.target.value);
+        setPage(1);
+        // fetchImages();
     };
     return (
         <main>
@@ -59,6 +77,10 @@ function App() {
                         type="text"
                         placeholder="search"
                         className="form-input"
+                        value={query}
+                        onChange={(e) => {
+                            setQuery(e.target.value);
+                        }}
                     />
                     <button
                         type="submit"
